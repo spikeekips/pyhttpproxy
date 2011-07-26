@@ -43,13 +43,12 @@ setup(
         "Topic :: Utilities",
     ),
 
-    data_files=(
-        ("bin", ("src/pyhttpproxy.py", ), ),
-    ),
-
     install_requires=(
         "Twisted>=10.1.0",
         "pyOpenSSL>=0.12",
+    ),
+    scripts=(
+        "src/pyhttpproxy.py",
     ),
 
 )
