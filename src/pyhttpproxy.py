@@ -9,6 +9,7 @@ import urlparse
 import urllib
 import resource
 import ConfigParser
+import warnings
 
 from twisted.scripts._twistd_unix import ServerOptions
 from twisted.application import service, internet
@@ -161,9 +162,26 @@ if __name__ == "__builtin__"  :
     _config = ConfigParser.ConfigParser()
     _config.read(_options.get("config", ), )
 
-    server_pool = {
-        "www.daum.net": ("http", "110.45.215.15", 80, ),
-    }
+    # read `include`d confs
+    if _config.has_section("include") and _config.has_option("include", "file", ):
+        _files = [
+                os.path.join(
+                    os.path.dirname(_options.get("config"), ),
+                    f.strip(),
+                ) for f in _config.get("include", "file", ).split(",") if f.strip()
+            ]
+        for f in _files :
+            if not os.path.exists(f, ) :
+                warnings.warn("can not find the included config file, '%s'. we will skip this file." % f, )
+
+            # dump confs to the main
+            _c = ConfigParser.ConfigParser()
+            _c.read(f, )
+            for k in _c.sections() :
+                if not _config.has_section(k, ) :
+                    _config.add_section(k, )
+
+                _config.set(k, "to", _c.get(k, "to", ), )
 
     _server(
         _options.get("port"),
