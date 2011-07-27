@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from distutils.core import setup
+from setuptools import setup
 
 long_description = """The `pyhttpproxy` is the HTTP proxy server, it can handle
 the `HTTP`, `HTTPS` with `x-forwarded-for` support."""
@@ -47,6 +47,10 @@ setup(
         "Twisted>=10.1.0",
         "pyOpenSSL>=0.12",
     ),
+    packages=(
+        "pyhttpproxy",
+    ),
+    package_dir={"": "src", },
     scripts=(
         "src/pyhttpproxy.py",
     ),
