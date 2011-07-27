@@ -47,6 +47,7 @@ setup(
         "Twisted>=10.1.0",
         "pyOpenSSL>=0.12",
     ),
+    zip_safe=False,
     packages=(
         "pyhttpproxy",
     ),
