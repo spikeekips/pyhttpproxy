@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from setuptools import setup
-
-long_description = """The `pyhttpproxy` is the HTTP proxy server, it can handle
-the `HTTP`, `HTTPS` with `x-forwarded-for` support."""
+try :
+    from gamepresso.common._distutils import setup
+except ImportError :
+    from setuptools import setup
 
 
 setup(
     name="pyhttpproxy",
     version="0.1",
     description="HTTPS request proxy server",
-    long_description=long_description.replace("\n", " ").strip(),
+    long_description="The `pyhttpproxy` is the HTTP proxy server, it can handle the `HTTP`, `HTTPS` with `x-forwarded-for` support.",
     author="Spike^ekipS",
     author_email="spikeekips@gmail.com",
     url="https://github.com/spikeekips/pyhttpproxy",
@@ -55,5 +55,6 @@ setup(
     scripts=(
         "src/pyhttpproxy.py",
     ),
-
 )
+
+
