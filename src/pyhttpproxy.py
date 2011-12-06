@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/Volumes/Userland/Users/spikeekips/workspace/chainpang/m/bin/python
 # -*- coding: utf-8 -*-
 
 
@@ -29,8 +29,15 @@ class ProxyRequest (proxy.ProxyRequest, ) :
 
     def process(self):
         _host_orig = urllib.splitport(self.getHeader("host"), )[0]
+        _key = "%s:%s" % ("https" if self.isSecure() else "http", _host_orig, )
 
-        _to = self.channel.factory.server_pool.get(_host_orig, "to", )
+        try :
+            _to = self.channel.factory.server_pool.get(_key, "to", )
+        except ConfigParser.NoSectionError :
+            self.channel.transport.write("HTTP/1.1 400 Bad Request\r\n\r\n")
+            self.channel.transport.loseConnection()
+            return
+
         _p = urlparse.urlsplit(_to, )
         (_host, _port, ) = urllib.splitnport(_p.netloc, 443 if _p.scheme == "https" else 80, )
 
@@ -57,9 +64,16 @@ class Proxy (proxy.Proxy, ) :
 class ProxyFactory (http.HTTPFactory, ) :
     protocol = Proxy
 
-    def __init__ (self, server_pool=dict(), timeout=20, without_x_forwarded_for=False, verbose=False, ) :
+    def __init__ (self,
+                    clientproto="https",
+                    server_pool=dict(),
+                    timeout=20,
+                    without_x_forwarded_for=False,
+                    verbose=False,
+                ) :
         http.HTTPFactory.__init__(self, timeout=timeout, )
 
+        self.clientproto = clientproto
         self.without_x_forwarded_for = without_x_forwarded_for
         self.verbose = verbose
 
@@ -73,11 +87,13 @@ class Options (ServerOptions, ) :
         ["test", None, "run doctest", ],
         ["without-x-forwarded-for", None,
             "don't append `X-Forwarded-For` in the header", ],
-        ["ssl", None, "use SSL", ],
+        ["https", None, "use SSL", ],
+        ["http", None, "use http", ],
     )
     optParameters = (
         ["config", None, None, "server pool config", ],
-        ["port", "8080", None, "listen port", ],
+        ["http-port", None, 8080, "listen http port", ],
+        ["https-port", None, 443, "listen https port", ],
         ["ssl-priv-file", None, None, "SSL private key file", ],
         ["ssl-cert-file", None, None, "SSL certificate file", ],
         ["timeout", None, "20", "client timeout", ],
@@ -106,21 +122,33 @@ class Options (ServerOptions, ) :
         if not os.path.exists(self.get("config"), ) :
             raise usage.UsageError("`config`, %s does not exist." % self.get("config"), )
 
-        if not self.get("port") :
-            raise usage.UsageError("`port` must be given.", )
+        if not self.get("http-port") and not self.get("https-port") :
+            raise usage.UsageError("`http-port` or `https-port` must be given.", )
 
-        if self.get("ssl") :
+        if self.get("http") and not self.get("http-port") :
+            raise usage.UsageError("`http-port` must be given.", )
+
+        if self.get("https") and not self.get("https-port") :
+            raise usage.UsageError("`https-port` must be given.", )
+
+        if self.get("https") :
             if not self.get("ssl-priv-file") or not self.get("ssl-cert-file") :
                 raise usage.UsageError(
             "For `https`, `ssl-priv-file` and `ssl-cert-file` must be given.", )
 
         self.opt_timeout(self.get("timeout"), )
 
-    def opt_port (self, value, ) :
+    def opt_http_port (self, value, ) :
         try :
-            self["port"] = int(value, )
+            self["http-port"] = int(value, )
         except ValueError :
-            raise usage.UsageError("invalid `port`, '%s', it must be int value." % value, )
+            raise usage.UsageError("invalid `http-port`, '%s', it must be int value." % value, )
+
+    def opt_https_port (self, value, ) :
+        try :
+            self["https-port"] = int(value, )
+        except ValueError :
+            raise usage.UsageError("invalid `https-port`, '%s', it must be int value." % value, )
 
     def opt_timeout (self, value, ) :
         try :
@@ -138,35 +166,15 @@ class Options (ServerOptions, ) :
             return
         return ServerOptions.opt_reactor(self, v, )
 
-
-if __name__ == "__builtin__"  :
-    _options = Options()
-    _options.parseOptions(skip_reactor=True, )
-
-    _a = list()
-    _kw = dict()
-
-    _server = internet.TCPServer
-    if _options.get("ssl") :
-        _server = internet.SSLServer
-        _a.append(
-            ssl.DefaultOpenSSLContextFactory(
-                _options.get("ssl-priv-file"),
-                _options.get("ssl-cert-file"),
-            ),
-        )
-
-    resource.setrlimit(resource.RLIMIT_NOFILE, (1024, 1024, ), )
-    application = service.Application("incheon", )
-
+def read_config (c, ) :
     _config = ConfigParser.ConfigParser()
-    _config.read(_options.get("config", ), )
+    _config.read(c, )
 
     # read `include`d confs
     if _config.has_section("include") and _config.has_option("include", "file", ):
         _files = [
                 os.path.join(
-                    os.path.dirname(_options.get("config"), ),
+                    os.path.dirname(c, ),
                     f.strip(),
                 ) for f in _config.get("include", "file", ).split(",") if f.strip()
             ]
@@ -183,17 +191,49 @@ if __name__ == "__builtin__"  :
 
                 _config.set(k, "to", _c.get(k, "to", ), )
 
-    _server(
-        _options.get("port"),
-        ProxyFactory(
-            _config,
-            timeout=_options.get("timeout"),
-            without_x_forwarded_for=_options.get("without-x-forwarded-for"),
-            verbose=_options.get("verbose"),
-        ),
-        *_a,
-        **_kw
-    ).setServiceParent(application, )
+    return _config
+
+
+if __name__ == "__builtin__"  :
+    _options = Options()
+    _options.parseOptions(skip_reactor=True, )
+
+    resource.setrlimit(resource.RLIMIT_NOFILE, (2048, 2048, ), )
+    application = service.Application("incheon", )
+
+    ################################################################################
+    # run HTTPS
+    _a = list()
+    _kw = dict()
+
+    if _options.get("http") :
+        internet.TCPServer(
+            _options.get("http-port"),
+            ProxyFactory(
+                clientproto="http",
+                server_pool=read_config(_options.get("config")),
+                timeout=_options.get("timeout"),
+                without_x_forwarded_for=_options.get("without-x-forwarded-for"),
+                verbose=_options.get("verbose"),
+            ),
+        ).setServiceParent(application, )
+
+    if _options.get("https") :
+        internet.SSLServer(
+            _options.get("https-port"),
+            ProxyFactory(
+                clientproto="https",
+                server_pool=read_config(_options.get("config")),
+                timeout=_options.get("timeout"),
+                without_x_forwarded_for=_options.get("without-x-forwarded-for"),
+                verbose=_options.get("verbose"),
+            ),
+            ssl.DefaultOpenSSLContextFactory(
+                _options.get("ssl-priv-file"),
+                _options.get("ssl-cert-file"),
+            ),
+        ).setServiceParent(application, )
+
 elif __name__ == "__main__"  :
     _found = False
     _n = list()
