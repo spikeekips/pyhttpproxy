@@ -8,7 +8,7 @@ except ImportError :
 
 setup(
     name="pyhttpproxy",
-    version="0.1",
+    version="0.2",
     description="HTTPS request proxy server",
     long_description="The `pyhttpproxy` is the HTTP proxy server, it can handle the `HTTP`, `HTTPS` with `x-forwarded-for` support.",
     author="Spike^ekipS",
