@@ -65,9 +65,9 @@ at ``/bin`` from the installation root path ::
 
 You can run the deploy script like this, ::
 
-    sh $ pyhttpproxy.py --port=8080 --ssl --ssl-priv-file=./server.key --ssl-cert-file=./server.crt --config=./pyhttpproxy.cfg -n
+    sh $ pyhttpproxy.py --https-port=8080 --ssl --ssl-priv-file=./server.key --ssl-cert-file=./server.crt --config=./pyhttpproxy.cfg -n
 
-The client send the HTTPS request to the port 8080 of this host and the every
+The client send the `HTTPS` request to the port 8080 of this host and the every
 request to port 8080 of this host will be forwarded to the server, which is
 defined in the `./pyhttpproxy.cfg`.
 
@@ -88,7 +88,8 @@ You can set these kind of options manually, ::
                                      Use with caution.)
           --vv                       verbose
           --without-x-forwarded-for  don't append `X-Forwarded-For` in the header
-          --ssl                      use SSL
+          --https                    use SSL
+          --http                     use http
       -l, --logfile=                 log to a specified file, - for stdout
       -p, --profile=                 Run in profile mode, dumping results to
                                      specified file
@@ -102,7 +103,8 @@ You can set these kind of options manually, ::
       -g, --gid=                     The gid to run as.
           --umask=                   The (octal) file creation mask to apply.
           --config=                  server pool config
-          --port=                    listen port
+          --http-port=               listen http port [default: 8080]
+          --https-port=              listen https port [default: 443]
           --ssl-priv-file=           SSL private key file
           --ssl-cert-file=           SSL certificate file
           --timeout=                 client timeout [default: 20]
@@ -159,19 +161,19 @@ Examples
 
 ::
 
-    [www.naver.com]
+    [https:www.naver.com]
     to = http://www.daum.net
 
-    [www.facebook.com]
+    [http:www.facebook.com]
     to = http://plus.google.com
 
-    [dev.flaskcon.com]
+    [http:dev.flaskcon.com]
     to = http://dev.gamepresso.com:8080
 
-In this config, the incoming request of `www.naver.com` will be forwarded to
-`www.daum.net` with the protocol, `HTTP` and the port, `80`, which is the
-default port of `HTTP`, and the incoming request of `dev.flaskcon.com` will be
-forwarded to `dev.gamepresso.com`, with the protocol, `HTTP` and the port,
-`8080`.
+In this config, the incoming `HTTPS` request of `www.naver.com` will be
+forwarded to `www.daum.net` with the protocol, `HTTP` and the port, `80`, which
+is the default port of `HTTP`, and the incoming `HTTP` request of
+`dev.flaskcon.com` will be forwarded to `dev.gamepresso.com`, with the protocol,
+`HTTP` and the port, `8080`.
 
 
