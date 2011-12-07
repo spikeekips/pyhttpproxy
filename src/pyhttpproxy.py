@@ -50,6 +50,7 @@ class ProxyRequest (proxy.ProxyRequest, ) :
                     "", headers.get('x-forwarded-for')).strip()
                 ) if "x-forwarded-for" in headers else ""
             headers['x-forwarded-for'] = _xf + self.client.host
+            headers['x-forwarded-proto'] = "https" if self.isSecure() else "http"
 
         self.content.seek(0, 0, )
         clientFactory = class_(

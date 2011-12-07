@@ -16,6 +16,10 @@ Feature
  - `HTTP`, `HTTPS` proxy
  - support *virtual host*
  - support `X-Forwarded-For`
+ - support `X-Forwarded-Proto`
+ - can run `HTTP`, `HTTPS` proxy server simultaneously.
+
+See http://en.wikipedia.org/wiki/List_of_HTTP_header_fields for more detials.
 
 
 Install
