@@ -5,6 +5,8 @@ try :
 except ImportError :
     from setuptools import setup
 
+from setuptools import find_packages
+
 
 setup(
     name="pyhttpproxy",
@@ -44,17 +46,17 @@ setup(
     ),
 
     install_requires=(
-        "Twisted>=10.1.0",
+        "Twisted>=12.0.0",
         "pyOpenSSL>=0.12",
     ),
     zip_safe=False,
-    packages=(
-        "pyhttpproxy",
-    ),
     package_dir={"": "src", },
-    scripts=(
-        "src/pyhttpproxy.py",
-    ),
+    packages = find_packages("src/") + ["twisted.plugins", ],
+    package_data={
+            "twisted": [
+                    "plugins/twisted_pyhttpproxy.py",
+                ],
+        },
 )
 
 
