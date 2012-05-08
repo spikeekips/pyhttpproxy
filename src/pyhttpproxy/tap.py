@@ -130,6 +130,18 @@ class FakeReactor (object, ) :
         return reactor.connectTCP(*a, **kw)
 
 
+class ProxyClientFactory (proxy.ProxyClientFactory, ) :
+    def __init__(self, command, rest, version, headers, data, father) :
+        if "host-original" in headers :
+            headers['host'] = headers.get("host-original")
+
+        proxy.ProxyClientFactory.__init__(self, command, rest, version, headers, data, father, )
+
+
+class ReverseProxyResource (proxy.ReverseProxyResource, ) :
+    proxyClientFactoryClass = ProxyClientFactory
+
+
 class ProxyResource (_resource.Resource, ) :
     isLeaf = False
     RE_REMOVE_COMMA = re.compile(",[\s]*$", )
@@ -163,12 +175,13 @@ class ProxyResource (_resource.Resource, ) :
             _x_forwarded_proto = "https" if request.isSecure() else "http"
             request.received_headers['x-forwarded-for'] = _x_forwarded_for
             request.received_headers['x-forwarded-proto'] = _x_forwarded_proto
-            request.content.seek(0, 0)
 
-        return proxy.ReverseProxyResource(
+        request.received_headers['host-original'] = _host_orig
+        request.content.seek(0, 0)
+        return ReverseProxyResource(
                 _host,
                 _port,
-                path if path else "/",
+                "/" + path if path else "/",
                 reactor=FakeReactor(self._timeout, ),
             )
 
