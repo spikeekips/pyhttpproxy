@@ -141,6 +141,14 @@ class ProxyClientFactory (proxy.ProxyClientFactory, ) :
 class ReverseProxyResource (proxy.ReverseProxyResource, ) :
     proxyClientFactoryClass = ProxyClientFactory
 
+    def getChild (self, path, request, ) :
+        return self.__class__(
+                self.host,
+                self.port,
+                self.path + "/" + urllib.quote(path, safe="", ),
+                self.reactor,
+            )
+
 
 class ProxyResource (_resource.Resource, ) :
     isLeaf = False
